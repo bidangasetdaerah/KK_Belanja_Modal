@@ -17,34 +17,32 @@
   </style>
 </head>
 
-<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4 sm:p-6">
+<body class="bg-gray-100 min-h-screen p-4 sm:p-6">
 
 <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-center">
   Upload Dokumen Pendukung SP2D
 </h1>
 
-<div class="bg-white shadow-md rounded-lg p-4 sm:p-6 w-full overflow-x-auto">
+<div class="bg-white shadow rounded-lg p-4 sm:p-6 max-w-6xl mx-auto">
 
-  <!-- Info -->
   <p id="infoJumlah" class="mb-4 text-sm font-medium text-gray-700"></p>
 
-  <!-- Search -->
   <input
     type="text"
     id="searchBox"
     placeholder="Cari Nama SKPD / Belanja..."
-    class="border rounded p-2 mb-4 w-full sm:w-64"
+    class="border rounded p-2 mb-4 w-full sm:w-72"
     oninput="applyFilters()"
   />
 
   <!-- TABLE DESKTOP -->
-  <table class="table-auto w-full border-collapse border border-gray-300 text-sm">
+  <table class="table-auto w-full border-collapse border text-sm">
     <thead class="bg-gray-200">
       <tr>
         <th class="border p-2">Nama SKPD</th>
         <th class="border p-2">Nilai SP2D</th>
         <th class="border p-2">Belanja</th>
-        <th class="border p-2">Dokumen Pendukung</th>
+        <th class="border p-2">Dokumen</th>
         <th class="border p-2">Aksi</th>
       </tr>
     </thead>
@@ -55,23 +53,22 @@
   <div id="cardList" class="card-list space-y-4"></div>
 
   <!-- PAGINATION -->
-  <div class="flex justify-center items-center gap-2 mt-4">
+  <div class="flex justify-center items-center gap-3 mt-4">
     <button onclick="prevPage()" class="px-3 py-1 bg-gray-200 rounded">Prev</button>
     <span id="pageInfo" class="text-sm"></span>
     <button onclick="nextPage()" class="px-3 py-1 bg-gray-200 rounded">Next</button>
   </div>
-
 </div>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzo5-wXUm4jb8iiA8onPHvNGU9hGogbd4WNV_GPfp66vtrrW1gs7954Jm9wXX2CCeZmBw/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzIKYYWfuJ5H9AzkHPguiSq7uKBNviSFWP4kEVeIcL_8CQ-3VuGW1p6w5JAMc7XjkW2ig/exec";
 
 let allData = [];
 let filteredData = [];
 let currentPage = 1;
 const rowsPerPage = 10;
 
-/* ================= UTIL ================= */
+/* ========= UTIL ========= */
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -81,15 +78,15 @@ function fileToBase64(file) {
   });
 }
 
-/* ================= LOAD DATA ================= */
+/* ========= LOAD DATA ========= */
 async function loadData() {
-  const res = await fetch(`${WEB_APP_URL}?action=getAploudData`);
+  const res = await fetch(`${WEB_APP_URL}?action=getUploadData`);
   allData = await res.json();
   filteredData = allData;
-  renderTable();
+  render();
 }
 
-/* ================= FILTER ================= */
+/* ========= FILTER ========= */
 function applyFilters() {
   const key = document.getElementById("searchBox").value.toLowerCase();
   filteredData = allData.filter(d =>
@@ -97,11 +94,11 @@ function applyFilters() {
     d.belanja.toLowerCase().includes(key)
   );
   currentPage = 1;
-  renderTable();
+  render();
 }
 
-/* ================= RENDER ================= */
-function renderTable() {
+/* ========= RENDER ========= */
+function render() {
   const tabel = document.getElementById("tabelData");
   const cardList = document.getElementById("cardList");
   tabel.innerHTML = "";
@@ -110,76 +107,77 @@ function renderTable() {
   const start = (currentPage - 1) * rowsPerPage;
   const pageData = filteredData.slice(start, start + rowsPerPage);
 
-  pageData.forEach(item => {
+  pageData.forEach((item, i) => {
+    const uid = start + i;
     const uploaded = item.dokumen && item.dokumen.startsWith("http");
 
-    /* TABLE */
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="border p-2">${item.namaSKPD}</td>
-      <td class="border p-2 text-right">
-        Rp ${Number(item.nilaiSP2D).toLocaleString("id-ID")}
-      </td>
-      <td class="border p-2">${item.belanja}</td>
-      <td class="border p-2 text-center">
-        ${uploaded ? `<a href="${item.dokumen}" target="_blank" class="text-blue-600 underline">Lihat</a>` : "-"}
-      </td>
-      <td class="border p-2 text-center">
-        <input type="file" id="file-${item.namaSKPD}" class="text-xs mb-1" ${uploaded ? "disabled" : ""}/>
-        <button onclick="uploadFileSKPD('${item.namaSKPD}')"
-          class="px-2 py-1 text-xs rounded ${uploaded ? "bg-gray-400 text-white" : "bg-green-600 text-white"}"
+    tabel.innerHTML += `
+      <tr>
+        <td class="border p-2">${item.namaSKPD}</td>
+        <td class="border p-2 text-right">Rp ${Number(item.nilaiSP2D).toLocaleString("id-ID")}</td>
+        <td class="border p-2">${item.belanja}</td>
+        <td class="border p-2 text-center">
+          ${uploaded ? `<a href="${item.dokumen}" target="_blank" class="text-blue-600 underline">Lihat</a>` : "-"}
+        </td>
+        <td class="border p-2 text-center">
+          <input type="file" id="file-${uid}" accept=".pdf,.jpg,.jpeg,.png"
+            class="text-xs mb-1" ${uploaded ? "disabled" : ""}>
+          <button onclick="uploadFile(${uid}, '${item.namaSKPD}')"
+            class="px-2 py-1 text-xs rounded ${uploaded ? "bg-gray-400" : "bg-green-600 text-white"}"
+            ${uploaded ? "disabled" : ""}>
+            Upload
+          </button>
+          <p id="status-${uid}" class="text-xs mt-1"></p>
+        </td>
+      </tr>
+    `;
+
+    cardList.innerHTML += `
+      <div class="border rounded p-3 shadow">
+        <p class="font-semibold">${item.namaSKPD}</p>
+        <p class="text-sm">SP2D: Rp ${Number(item.nilaiSP2D).toLocaleString("id-ID")}</p>
+        <p class="text-sm">Belanja: ${item.belanja}</p>
+        <p class="text-sm">Dokumen: ${uploaded ? `<a href="${item.dokumen}" class="text-blue-600 underline">Lihat</a>` : "-"}</p>
+        <input type="file" id="file-m-${uid}" accept=".pdf,.jpg,.jpeg,.png"
+          class="text-xs mt-2" ${uploaded ? "disabled" : ""}>
+        <button onclick="uploadFile(${uid}, '${item.namaSKPD}', true)"
+          class="mt-2 w-full text-xs px-2 py-1 rounded ${uploaded ? "bg-gray-400" : "bg-green-600 text-white"}"
           ${uploaded ? "disabled" : ""}>
           Upload
         </button>
-        <p id="status-${item.namaSKPD}" class="text-xs mt-1"></p>
-      </td>
+        <p id="status-m-${uid}" class="text-xs mt-1"></p>
+      </div>
     `;
-    tabel.appendChild(tr);
-
-    /* CARD MOBILE */
-    const card = document.createElement("div");
-    card.className = "border rounded p-3 shadow";
-    card.innerHTML = `
-      <p class="font-semibold">${item.namaSKPD}</p>
-      <p class="text-sm">SP2D: Rp ${Number(item.nilaiSP2D).toLocaleString("id-ID")}</p>
-      <p class="text-sm">Belanja: ${item.belanja}</p>
-      <p class="text-sm">Dokumen: ${uploaded ? `<a href="${item.dokumen}" class="text-blue-600 underline">Lihat</a>` : "-"}</p>
-      <input type="file" id="file-${item.namaSKPD}" class="text-xs mt-2" ${uploaded ? "disabled" : ""}/>
-      <button onclick="uploadFileSKPD('${item.namaSKPD}')"
-        class="mt-2 w-full text-xs px-2 py-1 rounded ${uploaded ? "bg-gray-400 text-white" : "bg-green-600 text-white"}"
-        ${uploaded ? "disabled" : ""}>
-        Upload
-      </button>
-      <p id="status-${item.namaSKPD}" class="text-xs mt-1"></p>
-    `;
-    cardList.appendChild(card);
   });
 
   document.getElementById("pageInfo").textContent =
     `Halaman ${currentPage} dari ${Math.ceil(filteredData.length / rowsPerPage)}`;
 
-  const uploadedCount = allData.filter(d => d.dokumen).length;
   document.getElementById("infoJumlah").textContent =
-    `Dokumen terunggah: ${uploadedCount} dari ${allData.length}`;
+    `Dokumen terunggah: ${allData.filter(d => d.dokumen && d.dokumen.startsWith("http")).length}
+     dari ${allData.length}`;
 }
 
-/* ================= PAGINATION ================= */
-function prevPage() { if (currentPage > 1) { currentPage--; renderTable(); } }
+/* ========= PAGINATION ========= */
+function prevPage() { if (currentPage > 1) { currentPage--; render(); } }
 function nextPage() {
   if (currentPage < Math.ceil(filteredData.length / rowsPerPage)) {
-    currentPage++;
-    renderTable();
+    currentPage++; render();
   }
 }
 
-/* ================= UPLOAD ================= */
-async function uploadFileSKPD(namaSKPD) {
-  const fileInput = document.getElementById(`file-${namaSKPD}`);
-  const status = document.getElementById(`status-${namaSKPD}`);
+/* ========= UPLOAD ========= */
+async function uploadFile(uid, namaSKPD, mobile = false) {
+  const fileInput = document.getElementById(mobile ? `file-m-${uid}` : `file-${uid}`);
+  const status = document.getElementById(mobile ? `status-m-${uid}` : `status-${uid}`);
+
   if (!fileInput.files.length) return alert("Pilih file dulu");
 
-  status.textContent = "Mengunggah...";
   const file = fileInput.files[0];
+  if (file.size > 5 * 1024 * 1024) return alert("Maksimal 5MB");
+
+  status.textContent = "Mengunggah...";
+
   const base64 = await fileToBase64(file);
 
   const res = await fetch(WEB_APP_URL, {
@@ -193,18 +191,17 @@ async function uploadFileSKPD(namaSKPD) {
   });
 
   const result = await res.json();
+
   if (result.success) {
     status.innerHTML = `Berhasil: <a href="${result.fileUrl}" target="_blank" class="text-blue-600 underline">Lihat</a>`;
-    const d = allData.find(x => x.namaSKPD === namaSKPD);
-    if (d) d.dokumen = result.fileUrl;
-    applyFilters();
+    allData.find(d => d.namaSKPD === namaSKPD).dokumen = result.fileUrl;
+    render();
   } else {
-    status.textContent = "Gagal upload";
+    status.textContent = "Upload gagal";
   }
 }
 
 loadData();
 </script>
-
 </body>
 </html>
